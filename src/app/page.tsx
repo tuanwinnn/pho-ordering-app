@@ -44,6 +44,7 @@ export default function FoodOrderingApp() {
   const [showCart, setShowCart] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
@@ -201,49 +202,46 @@ export default function FoodOrderingApp() {
 
   const placeOrder = async () => {
     try {
-      const orderData = {
-        userId: user?.id,
-        items: cart.map(item => ({
-          menuItemId: item._id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          spiceLevel: item.spiceLevel,
-          addons: item.addons,
-        })),
-        total: parseFloat(getCartTotal()) + 3.99,
-        status: 'pending' as const,
-        specialInstructions: specialInstructions || undefined
-      };
-
-      const headers: HeadersInit = {
+      setCheckoutLoading(true); // adding loading state
+      // prepare order data for stripe
+    const orderData = {
+      items: cart.map(item => ({
+        menuItemId: item._id,
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        quantity: item.quantity,
+        spiceLevel: item.spiceLevel,
+        addons: item.addons,
+      })),
+      total: parseFloat(getCartTotal()) + 3.99,
+      specialInstructions: specialInstructions || undefined
+    };
+    // Call Stripe checkout API
+    const response = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/json',
-      };
+      },
+      body: JSON.stringify(orderData),
+    });
 
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(orderData),
-      });
-
-      if (response.ok) {
-        setOrderPlaced(true);
-        setTimeout(() => {
-          setCart([]);
-          setSpecialInstructions('');
-          setOrderPlaced(false);
-          setShowCart(false);
-        }, 3000);
-      }
-    } catch (error) {
-      console.error('Error placing order:', error);
-      alert('Failed to place order. Please try again.');
+    if (!response.ok) {
+      throw new Error('Failed to create checkout session');
     }
-  };
+
+    const { url } = await response.json();
+
+    // Redirect to Stripe Checkout
+    // Stripe will handle the payment and redirect back to success page
+    window.location.href = url;
+ 
+  } catch (error) {
+    console.error('Error creating checkout:', error);
+    alert('Failed to start checkout. Please try again.');
+    setLoading(false);
+  }
+};
 
   const getAddonPrice = (addonName: string) => {
     return AVAILABLE_ADDONS.find(a => a.name === addonName)?.price || 0;
@@ -620,11 +618,19 @@ export default function FoodOrderingApp() {
                         ${(parseFloat(getCartTotal()) + 3.99).toFixed(2)}
                       </span>
                     </div>
-                    <button
+                   <button
                       onClick={placeOrder}
-                      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-black py-4 rounded-xl hover:from-amber-400 hover:to-amber-500 transition-all duration-300 hover:scale-105 font-bold text-lg shadow-lg shadow-amber-500/30"
+                      disabled={checkoutLoading}
+                      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-black py-4 rounded-xl hover:from-amber-400 hover:to-amber-500 transition-all duration-300 hover:scale-105 font-bold text-lg shadow-lg shadow-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
-                      Place Order
+                      {checkoutLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Redirecting to checkout...
+                        </span>
+                      ) : (
+                        'Place Order'
+                      )}
                     </button>
                   </div>
                 </>
