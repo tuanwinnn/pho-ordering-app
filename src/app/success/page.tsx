@@ -12,26 +12,61 @@ function SuccessContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Get the session_id from URL parameters
-    const sessionId = searchParams.get('session_id');
+useEffect(() => {
+  // Get the session_id from URL parameters
+  const sessionId = searchParams.get('session_id');
 
-    if (!sessionId) {
-      setError('No session ID found');
+  if (!sessionId) {
+    setError('No session ID found');
+    setLoading(false);
+    return;
+  }
+
+  // Verify payment and send confirmation email
+  const sendConfirmationEmail = async () => {
+    try {
+      // In a real app, you'd verify the payment with Stripe first
+      // and get the customer email from the session
+      // For now, we'll use a placeholder
+      
+      // You can get actual customer email from Stripe session
+      // by creating a verify-payment API route
+      
+      // Mock order data (in production, get this from Stripe metadata)
+      const orderData = {
+        customerEmail: 'customer@example.com', // Replace with actual email from Stripe
+        customerName: 'Customer',
+        orderNumber: sessionId.slice(-8).toUpperCase(),
+        items: [
+          // These would come from Stripe metadata
+          { name: 'Sample Item', quantity: 1, price: 12.99 }
+        ],
+        subtotal: 12.99,
+        deliveryFee: 3.99,
+        total: 16.98,
+        specialInstructions: '',
+      };
+
+      // Send confirmation email
+      const response = await fetch('/api/send-confirmation-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+      });
+
+      if (response.ok) {
+        console.log('✅ Confirmation email sent!');
+      }
+    } catch (error) {
+      console.error('Failed to send confirmation email:', error);
+      // Don't show error to user - email is nice-to-have
+    } finally {
       setLoading(false);
-      return;
     }
+  };
 
-    // Verify the payment was successful (optional but recommended)
-    // You could create an API route to verify the session
-    // For now, we'll just show success if session_id exists
-    
-    // Simulate verification delay
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-
-  }, [searchParams]);
+  sendConfirmationEmail();
+}, [searchParams]);
 
   if (loading) {
     return (

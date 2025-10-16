@@ -100,11 +100,12 @@ export async function POST(request: Request) {
     success_url: `${request.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${request.headers.get('origin')}/?canceled=true`,
     
-    // Store order metadata for later retrieval
     metadata: {
-      orderItems: JSON.stringify(items),
-      specialInstructions: specialInstructions || '',
-      totalAmount: total.toString(),
+    // Just store the order IDs and key info, not full descriptions
+    orderItemIds: items.map((item: CartItem) => item.menuItemId).join(','),
+    specialInstructions: specialInstructions || '',
+    totalAmount: total.toString(),
+    itemCount: items.length.toString(),
     },
     
     // Collect customer info
