@@ -1,17 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle, Loader2 } from 'lucide-react';
 
-export default function SuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
     const orderId = searchParams.get('order_id');
-    
+   
     if (!orderId) return;
 
     // Countdown timer
@@ -37,11 +37,11 @@ export default function SuccessPage() {
         <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-green-500">
           <CheckCircle className="w-10 h-10 text-green-500" />
         </div>
-        
+       
         <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent mb-3">
           Order Confirmed!
         </h1>
-        
+       
         <p className="text-zinc-400 mb-6">
           Thank you for your order. We&apos;re preparing your delicious meal!
         </p>
@@ -63,20 +63,31 @@ export default function SuccessPage() {
 
       <style jsx global>{`
         @keyframes scale-in {
-          from { 
+          from {
             opacity: 0;
             transform: scale(0.9);
           }
-          to { 
+          to {
             opacity: 1;
             transform: scale(1);
           }
         }
-
         .animate-scale-in {
           animation: scale-in 0.5s ease-out;
         }
       `}</style>
     </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-amber-400 animate-spin" />
+      </div>
+    }>
+      <SuccessContent />
+    </Suspense>
   );
 }
