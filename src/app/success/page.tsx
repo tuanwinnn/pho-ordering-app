@@ -12,6 +12,31 @@ function SuccessContent() {
   useEffect(() => {
     const orderId = searchParams.get('order_id');
    
+    // 🛒 CLEAR THE CART
+    localStorage.removeItem('cart');
+    
+    if (!orderId) return;
+
+    // Countdown timer
+    const interval = setInterval(() => {
+      setCountdown(prev => prev - 1);
+    }, 1000);
+
+    // Separate timeout for redirect
+    const redirectTimeout = setTimeout(() => {
+      router.push(`/orders/${orderId}`);
+    }, 3000);
+
+    // Cleanup
+    return () => {
+      clearInterval(interval);
+      clearTimeout(redirectTimeout);
+    };
+  }, [searchParams, router]);
+
+  useEffect(() => {
+    const orderId = searchParams.get('order_id');
+   
     if (!orderId) return;
 
     // Countdown timer
