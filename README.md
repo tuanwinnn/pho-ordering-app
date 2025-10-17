@@ -335,7 +335,7 @@ This is a demo food ordering application showcasing full-stack development skill
 *Fictional restaurant contact (part of the demo):*
 - Email: hello@phoparadise.com
 - Phone: (510) 555-PHỞ (7467)
-- Location: Oakland, CA
+- Location: San Jose, CA
 
 ## 📧 Contact
 
