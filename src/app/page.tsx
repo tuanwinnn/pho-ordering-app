@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { ShoppingCart, Plus, Minus, Trash2, ChefHat, Clock, Star, Loader2, Search, X, Flame, Heart, MapPin, Phone, Mail, User, LogOut, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from '@/components/AuthModal';
@@ -28,6 +30,7 @@ interface AddOn {
   price: number;
 }
 
+// Constants
 const AVAILABLE_ADDONS: AddOn[] = [
   { name: 'Extra Meat', price: 3.50 },
   { name: 'Extra Vegetables', price: 2.00 },
@@ -35,6 +38,16 @@ const AVAILABLE_ADDONS: AddOn[] = [
   { name: 'Fried Egg', price: 1.50 },
   { name: 'Spring Roll', price: 2.99 },
 ];
+
+const DELIVERY_FEE = 3.99;
+
+// Currency formatter
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  }).format(amount);
+};
 
 export default function FoodOrderingApp() {
   const { user, token, logout, isLoading: authLoading } = useAuth();
@@ -56,6 +69,8 @@ export default function FoodOrderingApp() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState<{ src: string; alt: string } | null>(null);
 
   useEffect(() => {
     async function fetchMenuItems() {
@@ -77,22 +92,55 @@ export default function FoodOrderingApp() {
 
     fetchMenuItems();
     
+    // Load favorites from localStorage
     const savedFavorites = localStorage.getItem('favorites');
     if (savedFavorites) {
       setFavorites(JSON.parse(savedFavorites));
     }
+
+    // Load cart from localStorage
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+    }
   }, []);
+
+  useEffect(() => {
+    console.log('🚀 Starting auto-progress interval');
+    
+    // Call auto-progression every 30 seconds
+    const interval = setInterval(() => {
+      fetch('/api/auto-progress-orders')
+        .then(res => res.json())
+        .then(data => {
+          if (data.updatedCount > 0) {
+            console.log(`✅ Auto-progressed ${data.updatedCount} order(s)`);
+          }
+        })
+        .catch(err => console.error('Auto-progress error:', err));
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Persist cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }, [cart]);
 
   const categories = ['All', 'Favorites', ...new Set(menuItems.map(item => item.category))];
 
-  const filteredItems = menuItems.filter(item => {
-    const matchesCategory = selectedCategory === 'All' || 
-                           selectedCategory === 'Favorites' ? favorites.includes(item._id) : 
-                           item.category === selectedCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+const filteredItems = menuItems.filter(item => {
+  const matchesCategory = selectedCategory === 'All' 
+    ? true  // Show all items when "All" is selected
+    : selectedCategory === 'Favorites' 
+    ? favorites.includes(item._id)
+    : item.category === selectedCategory;
+  
+  const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       item.description.toLowerCase().includes(searchQuery.toLowerCase());
+  return matchesCategory && matchesSearch;
+});
 
   const toggleFavorite = (itemId: string) => {
     const newFavorites = favorites.includes(itemId)
@@ -181,7 +229,7 @@ export default function FoodOrderingApp() {
     setCart(cart.filter((_, i) => i !== index));
   };
 
-  const getItemTotal = (item: CartItem) => {
+  const getItemTotal = (item: CartItem): number => {
     let total = item.price;
     if (item.addons) {
       item.addons.forEach(addonName => {
@@ -192,59 +240,69 @@ export default function FoodOrderingApp() {
     return total * item.quantity;
   };
 
-  const getCartTotal = () => {
-    return cart.reduce((total, item) => total + getItemTotal(item), 0).toFixed(2);
+  const getCartSubtotal = (): number => {
+    return cart.reduce((total, item) => total + getItemTotal(item), 0);
   };
 
-  const getCartCount = () => {
+  const getCartTotal = (): number => {
+    return getCartSubtotal() + DELIVERY_FEE;
+  };
+
+  const getCartCount = (): number => {
     return cart.reduce((count, item) => count + item.quantity, 0);
   };
 
   const placeOrder = async () => {
     try {
-      setCheckoutLoading(true); // adding loading state
-      // prepare order data for stripe
-    const orderData = {
-      items: cart.map(item => ({
-        menuItemId: item._id,
-        name: item.name,
-        description: item.description,
-        price: item.price,
-        quantity: item.quantity,
-        spiceLevel: item.spiceLevel,
-        addons: item.addons,
-      })),
-      total: parseFloat(getCartTotal()) + 3.99,
-      specialInstructions: specialInstructions || undefined
-    };
-    // Call Stripe checkout API
-    const response = await fetch('/api/create-checkout-session', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(orderData),
-    });
+      setCheckoutLoading(true);
+      const orderData = {
+        items: cart.map(item => ({
+          menuItemId: item._id,
+          name: item.name,
+          description: item.description,
+          price: item.price,
+          quantity: item.quantity,
+          spiceLevel: item.spiceLevel,
+          addons: item.addons,
+        })),
+        total: getCartTotal(),
+        specialInstructions: specialInstructions || undefined
+      };
+      
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to create checkout session');
-    }
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
 
-    const { url } = await response.json();
-
-    // Redirect to Stripe Checkout
-    // Stripe will handle the payment and redirect back to success page
-    window.location.href = url;
+      const { url } = await response.json();
+      window.location.href = url;
  
-  } catch (error) {
-    console.error('Error creating checkout:', error);
-    alert('Failed to start checkout. Please try again.');
-    setLoading(false);
-  }
-};
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      alert('Failed to start checkout. Please try again.');
+      setCheckoutLoading(false);
+    }
+  };
 
   const getAddonPrice = (addonName: string) => {
     return AVAILABLE_ADDONS.find(a => a.name === addonName)?.price || 0;
+  };
+
+  const openImageModal = (src: string, alt: string) => {
+    setEnlargedImage({ src, alt });
+    setShowImageModal(true);
+  };
+
+  const closeImageModal = () => {
+    setShowImageModal(false);
+    setEnlargedImage(null);
   };
 
   if (loading) {
@@ -300,6 +358,7 @@ export default function FoodOrderingApp() {
               >
                 About Us
               </button>
+
               
               {user ? (
                 <div className="relative">
@@ -317,18 +376,18 @@ export default function FoodOrderingApp() {
                         <p className="text-sm font-semibold text-zinc-200">{user.name}</p>
                         <p className="text-xs text-zinc-500">{user.email}</p>
                       </div>
-                      <a
+                      <Link
                         href="/profile"
                         className="block px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-amber-400 transition-colors"
                       >
                         My Profile
-                      </a>
-                      <a
+                      </Link>
+                      <Link
                         href="/orders"
                         className="block px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-amber-400 transition-colors"
                       >
                         Order History
-                      </a>
+                      </Link>
                       <button
                         onClick={() => {
                           logout();
@@ -451,29 +510,49 @@ export default function FoodOrderingApp() {
                 ))}
               </div>
             </div>
-
-            {/* Menu Items Grid */}
-            {filteredItems.length === 0 ? (
-              <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-12 text-center animate-fade-in">
-                <Search className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
-                <p className="text-xl text-zinc-400">No dishes found</p>
-                <p className="text-zinc-600 mt-2">Try a different search or category</p>
-              </div>
-            ) : (
+            
+    {/* Menu Items Grid */}
+    {filteredItems.length === 0 ? (
+      <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-12 text-center animate-fade-in">
+        <Search className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
+        <p className="text-xl text-zinc-400">No dishes found</p>
+        <p className="text-zinc-600 mt-2">Try a different search or category</p>
+      </div>
+    ) : selectedCategory === 'All' ? (
+      // Show items grouped by category when "All" is selected
+      <div className="space-y-8">
+        {Array.from(new Set(filteredItems.map(item => item.category))).map((category) => {
+          const categoryItems = filteredItems.filter(item => item.category === category);
+          return (
+            <div key={category} className="animate-fade-in">
+              <h3 className="text-2xl font-bold text-zinc-200 mb-4 pb-2 border-b border-zinc-800">
+                {category}
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredItems.map((item, index) => (
+                {categoryItems.map((item, index) => (
                   <div 
                     key={item._id} 
                     className="group bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl overflow-hidden hover:border-amber-500/50 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-amber-500/10 animate-fade-in"
                     style={{animationDelay: `${index * 0.05}s`}}
                   >
+                    <div className="relative h-48 overflow-hidden bg-zinc-800">
+                      <img 
+                        src={item.image} 
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%2327272a" width="400" height="300"/%3E%3Ctext fill="%2371717a" font-family="sans-serif" font-size="24" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                    </div>
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-4">
-                        <div className="text-6xl group-hover:scale-110 transition-transform duration-300">{item.image}</div>
-                        <div className="flex gap-2">
+                        <h3 className="text-xl font-bold text-zinc-100 group-hover:text-amber-400 transition-colors flex-1">{item.name}</h3>
+                        <div className="flex gap-2 ml-3">
                           <button
                             onClick={() => toggleFavorite(item._id)}
-                            className={`p-2 rounded-full transition-all duration-300 hover:scale-110 ${
+                            aria-label={favorites.includes(item._id) ? 'Remove from favorites' : 'Add to favorites'}
+                            className={`p-2 rounded-full transition-all duration-300 hover:scale-110 flex-shrink-0 ${
                               favorites.includes(item._id)
                                 ? 'bg-red-500/20 text-red-400'
                                 : 'bg-zinc-800/50 text-zinc-500 hover:text-red-400 hover:bg-zinc-800'
@@ -481,13 +560,12 @@ export default function FoodOrderingApp() {
                           >
                             <Heart className={`w-5 h-5 ${favorites.includes(item._id) ? 'fill-current' : ''}`} />
                           </button>
-                          <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full">
+                          <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full flex-shrink-0">
                             <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                             <span className="text-sm font-semibold text-amber-400">{item.rating}</span>
                           </div>
                         </div>
                       </div>
-                      <h3 className="text-xl font-bold text-zinc-100 mb-2 group-hover:text-amber-400 transition-colors">{item.name}</h3>
                       <p className="text-zinc-500 text-sm mb-4 leading-relaxed">{item.description}</p>
                       <div className="flex items-center gap-2 mb-5">
                         <Clock className="w-4 h-4 text-zinc-600" />
@@ -495,7 +573,7 @@ export default function FoodOrderingApp() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-                          ${item.price}
+                          {formatCurrency(item.price)}
                         </span>
                         <div className="flex gap-2">
                           <button
@@ -517,8 +595,81 @@ export default function FoodOrderingApp() {
                   </div>
                 ))}
               </div>
-            )}
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      // Show items in grid for specific categories (including Favorites)
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {filteredItems.map((item, index) => (
+          <div 
+            key={item._id} 
+            className="group bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl overflow-hidden hover:border-amber-500/50 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-amber-500/10 animate-fade-in"
+            style={{animationDelay: `${index * 0.05}s`}}
+          >
+            <div className="relative h-48 overflow-hidden bg-zinc-800">
+              <img 
+                src={item.image} 
+                alt={item.name}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                onError={(e) => {
+                  e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%2327272a" width="400" height="300"/%3E%3Ctext fill="%2371717a" font-family="sans-serif" font-size="24" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+                }}
+              />
+            </div>
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <h3 className="text-xl font-bold text-zinc-100 group-hover:text-amber-400 transition-colors flex-1">{item.name}</h3>
+                <div className="flex gap-2 ml-3">
+                  <button
+                    onClick={() => toggleFavorite(item._id)}
+                    aria-label={favorites.includes(item._id) ? 'Remove from favorites' : 'Add to favorites'}
+                    className={`p-2 rounded-full transition-all duration-300 hover:scale-110 flex-shrink-0 ${
+                      favorites.includes(item._id)
+                        ? 'bg-red-500/20 text-red-400'
+                        : 'bg-zinc-800/50 text-zinc-500 hover:text-red-400 hover:bg-zinc-800'
+                    }`}
+                  >
+                    <Heart className={`w-5 h-5 ${favorites.includes(item._id) ? 'fill-current' : ''}`} />
+                  </button>
+                  <div className="flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-full flex-shrink-0">
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    <span className="text-sm font-semibold text-amber-400">{item.rating}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-zinc-500 text-sm mb-4 leading-relaxed">{item.description}</p>
+              <div className="flex items-center gap-2 mb-5">
+                <Clock className="w-4 h-4 text-zinc-600" />
+                <span className="text-sm text-zinc-600">{item.prepTime}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
+                  {formatCurrency(item.price)}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openItemModal(item)}
+                    className="bg-zinc-800 text-zinc-300 px-4 py-2.5 rounded-full hover:bg-zinc-700 hover:text-amber-400 transition-all duration-300 hover:scale-105 font-medium text-sm border border-zinc-700"
+                  >
+                    Add-ons
+                  </button>
+                  <button
+                    onClick={() => quickAddToCart(item)}
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 text-black px-5 py-2.5 rounded-full hover:from-amber-400 hover:to-amber-500 transition-all duration-300 hover:scale-105 flex items-center gap-2 shadow-lg shadow-amber-500/20 font-semibold"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add to Cart
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
+        ))}
+      </div>
+    )}
+    </div>
 
           {/* Cart Section */}
           <div className={`lg:block ${showCart ? 'block' : 'hidden'}`}>
@@ -544,10 +695,22 @@ export default function FoodOrderingApp() {
                     {cart.map((item, index) => (
                       <div key={index} className="bg-black/30 border border-zinc-800 p-4 rounded-xl hover:border-amber-500/30 transition-all duration-300 animate-slide-down">
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="text-3xl">{item.image}</div>
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0 relative flex items-center justify-center">
+                            {item.image.startsWith('/') || item.image.startsWith('http') ? (
+                              <Image 
+                                src={item.image} 
+                                alt={item.name}
+                                fill
+                                sizes="48px"
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="text-2xl">{item.image}</div>
+                            )}
+                          </div>
                           <div className="flex-1">
                             <h4 className="font-semibold text-zinc-200">{item.name}</h4>
-                            <p className="text-sm text-amber-400 font-semibold">${item.price}</p>
+                            <p className="text-sm text-amber-400 font-semibold">{formatCurrency(item.price)}</p>
                             {item.spiceLevel && (
                               <div className="flex items-center gap-1 mt-1">
                                 <Flame className="w-3 h-3 text-red-400" />
@@ -563,6 +726,7 @@ export default function FoodOrderingApp() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => updateQuantity(index, -1)}
+                              aria-label="Decrease quantity"
                               className="bg-zinc-800 hover:bg-zinc-700 p-1.5 rounded-lg transition-all duration-300 hover:scale-110 border border-zinc-700"
                             >
                               <Minus className="w-3 h-3" />
@@ -570,12 +734,14 @@ export default function FoodOrderingApp() {
                             <span className="font-semibold w-8 text-center text-amber-400">{item.quantity}</span>
                             <button
                               onClick={() => updateQuantity(index, 1)}
+                              aria-label="Increase quantity"
                               className="bg-zinc-800 hover:bg-zinc-700 p-1.5 rounded-lg transition-all duration-300 hover:scale-110 border border-zinc-700"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
                             <button
                               onClick={() => removeFromCart(index)}
+                              aria-label="Remove from cart"
                               className="ml-2 text-red-400 hover:text-red-300 transition-all duration-300 hover:scale-110"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -583,7 +749,7 @@ export default function FoodOrderingApp() {
                           </div>
                         </div>
                         <div className="text-right text-sm font-semibold text-zinc-400 border-t border-zinc-800 pt-2">
-                          ${getItemTotal(item).toFixed(2)}
+                          {formatCurrency(getItemTotal(item))}
                         </div>
                       </div>
                     ))}
@@ -606,19 +772,19 @@ export default function FoodOrderingApp() {
                   <div className="border-t border-zinc-800 pt-6 space-y-3">
                     <div className="flex justify-between text-lg text-zinc-400">
                       <span>Subtotal</span>
-                      <span className="font-semibold">${getCartTotal()}</span>
+                      <span className="font-semibold">{formatCurrency(getCartSubtotal())}</span>
                     </div>
                     <div className="flex justify-between text-lg text-zinc-400">
                       <span>Delivery</span>
-                      <span className="font-semibold">$3.99</span>
+                      <span className="font-semibold">{formatCurrency(DELIVERY_FEE)}</span>
                     </div>
                     <div className="flex justify-between text-2xl font-bold border-t border-zinc-800 pt-4">
                       <span className="text-zinc-200">Total</span>
                       <span className="bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-                        ${(parseFloat(getCartTotal()) + 3.99).toFixed(2)}
+                        {formatCurrency(getCartTotal())}
                       </span>
                     </div>
-                   <button
+                    <button
                       onClick={placeOrder}
                       disabled={checkoutLoading}
                       className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-black py-4 rounded-xl hover:from-amber-400 hover:to-amber-500 transition-all duration-300 hover:scale-105 font-bold text-lg shadow-lg shadow-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
@@ -646,9 +812,34 @@ export default function FoodOrderingApp() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-scale-in shadow-2xl">
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
-                <div className="text-7xl mb-4">{selectedItem.image}</div>
+                <div 
+                  className="relative h-32 w-32 rounded-xl overflow-hidden bg-zinc-800 flex items-center justify-center cursor-pointer hover:ring-4 hover:ring-amber-500/50 transition-all"
+                  onClick={() => {
+                    if (selectedItem.image.startsWith('/') || selectedItem.image.startsWith('http')) {
+                      openImageModal(selectedItem.image, selectedItem.name);
+                    }
+                  }}
+                >
+                  {selectedItem.image.startsWith('/') || selectedItem.image.startsWith('http') ? (
+                    <>
+                      <Image 
+                        src={selectedItem.image} 
+                        alt={selectedItem.name}
+                        fill
+                        sizes="128px"
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-all flex items-center justify-center">
+                        <span className="text-white text-xs opacity-0 hover:opacity-100 transition-opacity">🔍</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-7xl">{selectedItem.image}</div>
+                  )}
+                </div>
                 <button
                   onClick={closeModal}
+                  aria-label="Close modal"
                   className="text-zinc-500 hover:text-amber-400 transition-colors duration-300"
                 >
                   <X className="w-6 h-6" />
@@ -713,7 +904,7 @@ export default function FoodOrderingApp() {
                         />
                         <span className="text-zinc-300">{addon.name}</span>
                       </div>
-                      <span className="text-amber-400 font-semibold">+${addon.price.toFixed(2)}</span>
+                      <span className="text-amber-400 font-semibold">+{formatCurrency(addon.price)}</span>
                     </label>
                   ))}
                 </div>
@@ -723,11 +914,11 @@ export default function FoodOrderingApp() {
               <div className="border-t border-zinc-800 pt-4">
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
-                    ${(selectedItem.price + tempAddons.reduce((sum, name) => sum + getAddonPrice(name), 0)).toFixed(2)}
+                    {formatCurrency(selectedItem.price + tempAddons.reduce((sum, name) => sum + getAddonPrice(name), 0))}
                   </span>
                   {tempAddons.length > 0 && (
                     <span className="text-sm text-zinc-500">
-                      (Base: ${selectedItem.price})
+                      (Base: {formatCurrency(selectedItem.price)})
                     </span>
                   )}
                 </div>
@@ -752,6 +943,7 @@ export default function FoodOrderingApp() {
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">About Phở Paradise</h2>
                 <button
                   onClick={() => setShowAboutModal(false)}
+                  aria-label="Close about modal"
                   className="text-zinc-500 hover:text-amber-400 transition-colors duration-300"
                 >
                   <X className="w-6 h-6" />
@@ -759,7 +951,6 @@ export default function FoodOrderingApp() {
               </div>
 
               <div className="space-y-6">
-                {/* Story */}
                 <div className="animate-slide-up">
                   <h3 className="text-xl font-semibold text-zinc-200 mb-3 tracking-wide">OUR STORY</h3>
                   <p className="text-zinc-400 leading-relaxed">
@@ -770,7 +961,6 @@ export default function FoodOrderingApp() {
                   </p>
                 </div>
 
-                {/* Contact Info */}
                 <div className="bg-zinc-800/30 border border-zinc-800 rounded-xl p-6 space-y-4 animate-slide-up" style={{animationDelay: '0.1s'}}>
                   <h3 className="text-xl font-semibold text-zinc-200 mb-4 tracking-wide">VISIT US</h3>
                   
@@ -809,7 +999,6 @@ export default function FoodOrderingApp() {
                   </div>
                 </div>
 
-                {/* Values */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-slide-up" style={{animationDelay: '0.2s'}}>
                   <div className="text-center p-4 bg-zinc-800/20 border border-zinc-800 rounded-xl hover:bg-zinc-800/40 hover:border-amber-500/30 transition-all duration-300">
                     <div className="text-4xl mb-2">🌿</div>
@@ -828,7 +1017,6 @@ export default function FoodOrderingApp() {
                   </div>
                 </div>
 
-                {/* Reviews */}
                 <div className="animate-slide-up" style={{animationDelay: '0.3s'}}>
                   <h3 className="text-xl font-semibold text-zinc-200 mb-4 tracking-wide">CUSTOMER REVIEWS</h3>
                   <div className="space-y-4">
@@ -880,20 +1068,52 @@ export default function FoodOrderingApp() {
         onClose={() => setShowAuthModal(false)} 
       />
 
-      {/* Mobile Cart Toggle */}
-      <div className="lg:hidden fixed bottom-4 right-4 z-40">
-        <button
-          onClick={() => setShowCart(!showCart)}
-          className="bg-gradient-to-r from-amber-500 to-amber-600 text-black p-4 rounded-full shadow-2xl hover:from-amber-400 hover:to-amber-500 transition-all duration-300 hover:scale-110 relative"
+      {/* Image Enlarge Modal */}
+      {showImageModal && enlargedImage && (
+        <div 
+          className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in"
+          onClick={closeImageModal}
         >
-          <ShoppingCart className="w-6 h-6" />
-          {getCartCount() > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold animate-pulse">
-              {getCartCount()}
-            </span>
-          )}
-        </button>
-      </div>
+          <button
+            onClick={closeImageModal}
+            aria-label="Close image"
+            className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors duration-300 bg-black/50 p-3 rounded-full hover:bg-black/70"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <div className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center animate-scale-in">
+            <div className="relative w-full h-full">
+              <Image
+                src={enlargedImage.src}
+                alt={enlargedImage.alt}
+                fill
+                sizes="(max-width: 1280px) 100vw, 1280px"
+                className="object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 backdrop-blur-md px-6 py-3 rounded-full">
+              <p className="text-white font-semibold text-lg">{enlargedImage.alt}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+  {/* Mobile Cart Toggle */}
+  <div className="lg:hidden fixed bottom-4 right-4 z-40">
+    <button
+      onClick={() => setShowCart(!showCart)}
+      aria-label="Toggle shopping cart"
+      className="bg-gradient-to-r from-amber-500 to-amber-600 text-black p-4 rounded-full shadow-2xl hover:from-amber-400 hover:to-amber-500 transition-all duration-300 hover:scale-110 relative"
+    >
+      <ShoppingCart className="w-6 h-6" />
+      {getCartCount() > 0 && (
+        <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold animate-pulse">
+          {getCartCount()}
+        </span>
+      )}
+    </button>
+  </div>
 
       <style jsx global>{`
         @keyframes fade-in {

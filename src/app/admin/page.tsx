@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Package, Clock, CheckCircle, Truck, Edit, Trash2, Plus, RefreshCw, TrendingUp, DollarSign, ShoppingBag, Search, Sparkles, ChefHat, X } from 'lucide-react';
 
 interface Order {
@@ -64,7 +65,7 @@ export default function AdminDashboard() {
     description: '',
     price: '',
     category: 'Appetizers',
-    image: '🍜',
+    image: '/images/menu/placeholder.jpg',
     rating: '4.5',
     prepTime: '15-20 min'
   });
@@ -162,7 +163,7 @@ export default function AdminDashboard() {
           description: '',
           price: '',
           category: 'Appetizers',
-          image: '🍜',
+          image: '/images/menu/placeholder.jpg',
           rating: '4.5',
           prepTime: '15-20 min'
         });
@@ -367,7 +368,19 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 {popularItems.map((item) => (
                   <div key={item._id} className="flex items-center gap-4 p-4 bg-black/30 border border-zinc-800 rounded-xl hover:border-amber-500/30 transition-all">
-                    <div className="text-4xl">{item.image}</div>
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
+                      {item.image.startsWith('/') || item.image.startsWith('http') ? (
+                        <Image 
+                          src={item.image} 
+                          alt={item.name}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-3xl">{item.image}</div>
+                      )}
+                    </div>
                     <div className="flex-1">
                       <h4 className="font-semibold text-zinc-200">{item.name}</h4>
                       <p className="text-sm text-zinc-500">{item.category}</p>
@@ -576,7 +589,19 @@ export default function AdminDashboard() {
                     {items.map(item => (
                       <div key={item._id} className="bg-black/30 border border-zinc-800 rounded-xl p-4 hover:border-amber-500/30 transition-all group">
                         <div className="flex items-start gap-3 mb-3">
-                          <div className="text-4xl group-hover:scale-110 transition-transform">{item.image}</div>
+                          <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-zinc-800 flex-shrink-0">
+                            {item.image.startsWith('/') || item.image.startsWith('http') ? (
+                              <Image 
+                                src={item.image} 
+                                alt={item.name}
+                                fill
+                                sizes="64px"
+                                className="object-cover group-hover:scale-110 transition-transform"
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center h-full text-3xl group-hover:scale-110 transition-transform">{item.image}</div>
+                            )}
+                          </div>
                           <div className="flex-1">
                             <h4 className="font-bold text-zinc-100 mb-1">{item.name}</h4>
                             <p className="text-xs text-zinc-500 line-clamp-2">{item.description}</p>
@@ -621,6 +646,7 @@ export default function AdminDashboard() {
                 </h2>
                 <button
                   onClick={() => setShowAddModal(false)}
+                  aria-label="Close modal"
                   className="text-zinc-500 hover:text-amber-400 transition-colors"
                 >
                   <X className="w-6 h-6" />
@@ -700,16 +726,16 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-zinc-400 mb-2">Emoji Icon</label>
+                  <label className="block text-sm font-semibold text-zinc-400 mb-2">Image Path</label>
                   <input
                     type="text"
                     value={newItem.image}
                     onChange={(e) => setNewItem({...newItem, image: e.target.value})}
                     required
                     className="w-full px-4 py-3 bg-black/50 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-zinc-200"
-                    placeholder="🍜"
+                    placeholder="/images/menu/dish-name.jpg"
                   />
-                  <p className="text-xs text-zinc-600 mt-1">Use an emoji to represent the dish</p>
+                  <p className="text-xs text-zinc-600 mt-1">Enter the path to your image (e.g., /images/menu/pho-bo.jpg)</p>
                 </div>
 
                 <div>

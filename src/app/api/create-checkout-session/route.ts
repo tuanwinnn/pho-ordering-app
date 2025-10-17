@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
+import connectDB from '@/lib/mongodb';
+import Order from '@/models/Order';
 
 // Define types for better TypeScript support
 interface CartItem {
@@ -26,15 +28,31 @@ export async function POST(request: Request) {
     const body = await request.json() as OrderData;
     const { items, total, specialInstructions } = body;
 
+    // 🆕 STEP 1: Save order to MongoDB FIRST
+    await connectDB();
+    
+    const newOrder = await Order.create({
+      items: items.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        spiceLevel: item.spiceLevel,
+        addons: item.addons,
+      })),
+      total,
+      status: 'pending',
+      specialInstructions,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
     // Create line items for Stripe checkout
-    // Each item needs: name, amount (in cents), quantity
     const lineItems = items.map((item: CartItem) => {
       // Calculate price including add-ons
       let itemPrice = item.price;
       
       // Add prices for any add-ons
       if (item.addons && item.addons.length > 0) {
-        // Define prices for each add-on option
         const addonPrices: Record<string, number> = {
           'Extra Meat': 3.50,
           'Extra Vegetables': 2.00,
@@ -43,7 +61,6 @@ export async function POST(request: Request) {
           'Spring Roll': 2.99,
         };
         
-        // Add up all add-on prices
         item.addons.forEach((addon: string) => {
           itemPrice += addonPrices[addon] || 0;
         });
@@ -64,10 +81,7 @@ export async function POST(request: Request) {
           product_data: {
             name: item.name,
             description: description.trim(),
-            // You can add images here when you have real images
-            // images: [item.imageUrl],
           },
-          // Stripe expects amount in cents, so multiply by 100
           unit_amount: Math.round(itemPrice * 100),
         },
         quantity: item.quantity,
@@ -87,35 +101,25 @@ export async function POST(request: Request) {
       quantity: 1,
     });
 
-  // Create the Stripe checkout session
-  const session = await stripe.checkout.sessions.create({
-    // Payment settings
-    payment_method_types: ['card'], // Accept credit/debit cards
-    mode: 'payment', // One-time payment (not subscription)
-    
-    // Line items (what customer is buying)
-    line_items: lineItems,
-    
-    // Success and cancel URLs
-    success_url: `${request.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${request.headers.get('origin')}/?canceled=true`,
-    
-    metadata: {
-    // Just store the order IDs and key info, not full descriptions
-    orderItemIds: items.map((item: CartItem) => item.menuItemId).join(','),
-    specialInstructions: specialInstructions || '',
-    totalAmount: total.toString(),
-    itemCount: items.length.toString(),
-    },
-    
-    // Collect customer info
-    // Remove phone collection requirement
-    billing_address_collection: 'auto', // Collect billing address automatically
-    
-    // Shipping address collection (optional)
-    // shipping_address_collection: {
-    //   allowed_countries: ['US'],
-    // },
+    // 🆕 STEP 2: Create Stripe session with order ID in success URL
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: lineItems,
+      
+      // 🆕 Updated success URL with order_id parameter
+      success_url: `${request.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}&order_id=${newOrder._id}`,
+      cancel_url: `${request.headers.get('origin')}/?canceled=true`,
+      
+      metadata: {
+        orderId: newOrder._id.toString(), // 🆕 Store order ID in metadata
+        orderItemIds: items.map((item: CartItem) => item.menuItemId).join(','),
+        specialInstructions: specialInstructions || '',
+        totalAmount: total.toString(),
+        itemCount: items.length.toString(),
+      },
+      
+      billing_address_collection: 'auto',
     });
 
     // Return the session ID and URL to the client
