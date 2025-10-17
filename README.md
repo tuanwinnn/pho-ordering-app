@@ -253,13 +253,6 @@ Use Stripe test cards:
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
-
-1. Push code to GitHub
-2. Import project in Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy!
-
 ### Environment Variables for Production
 
 Update these in your hosting platform:
@@ -332,7 +325,7 @@ This is a demo food ordering application showcasing full-stack development skill
 
 **Developer:** Tuan Nguyen
 - GitHub: [@tuanwinnn](https://github.com/tuanwinnn)
-- LinkedIn: [Tuan Nguyen](linkedin.com/in/tuan-nguyen-237656326)
+- LinkedIn: [Tuan Nguyen](https://www.linkedin.com/in/tuan-nguyen-237656326/)
 
 ---
 
@@ -342,26 +335,55 @@ This is a demo food ordering application showcasing full-stack development skill
 
 ## 📸 Screenshots
 
-<div align="center">
+### 🏠 Main Application
 
-  <img src="./public/screenshots/main-page-ss1.jpg" width="45%" alt="Homepage">
-  <img src="./public/screenshots/main-page-ss2.jpg" width="45%" alt="Homepage">
-  <img src="./public/screenshots/main-page-ss3.jpg" width="45%" alt="Homepage">
+**Homepage - Browse Menu**
+![Homepage](./public/screenshots/main-page-ss1.jpg)
 
-  <img src="./public/screenshots/add-ons.jpg" width="45%" alt="Add-ons">
+**Category View**
+![Categories](./public/screenshots/main-page-ss2.jpg)
 
-  <img src="./public/screenshots/order-confirmed.jpg" width="45%" alt="Order Confirmed">
-  <img src="./public/screenshots/order-confirmed2.jpg" width="45%" alt="Order Confirmed">
-  <img src="./public/screenshots/order-confirmed3.jpg" width="45%" alt="Order Confirmed">
+**Menu Items**
+![Menu](./public/screenshots/main-page-ss3.jpg)
 
-  <img src="./public/screenshots/place-order.jpg" width="45%" alt="Place Order">
+---
 
-  <img src="./public/screenshots/payment-page.jpg" width="45%" alt="Payment Page">
+### 🛒 Ordering Process
 
+**Customize Your Order**
+![Add-ons](./public/screenshots/add-ons.jpg)
 
-  <img src="./public/screenshots/admin-page.jpg" width="45%" alt="Admin Page">
-  <img src="./public/screenshots/admin-page2.jpg" width="45%" alt="Admin Page">
-  <img src="./public/screenshots/admin-page3.jpg" width="45%" alt="Admin Page">
-  <img src="./public/screenshots/admin-page4.jpg" width="45%" alt="Admin Page">
+**Shopping Cart**
+![Cart](./public/screenshots/place-order.jpg)
 
-</div>
+**Secure Stripe Checkout**
+![Payment](./public/screenshots/payment-page.jpg)
+
+---
+
+### 📦 Order Tracking
+
+**Order Confirmed**
+![Confirmed](./public/screenshots/order-confirmed.jpg)
+
+**Order Status - Preparing**
+![Preparing](./public/screenshots/order-confirmed2.jpg)
+
+**Order Delivered**
+![Delivered](./public/screenshots/order-confirmed3.jpg)
+
+---
+
+### 👨‍💼 Admin Features
+
+**Admin Dashboard**
+![Admin](./public/screenshots/admin-page.jpg)
+
+**Manage Menu Items**
+![Menu Management](./public/screenshots/admin-page2.jpg)
+
+**Order Management**
+![Orders](./public/screenshots/admin-page3.jpg)
+
+**Analytics**
+![Analytics](./public/screenshots/admin-page4.jpg)
