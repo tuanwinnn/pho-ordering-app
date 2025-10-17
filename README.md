@@ -3,9 +3,19 @@
 A modern, full-stack food ordering application for authentic Vietnamese cuisine. Built with Next.js, TypeScript, MongoDB, and Stripe for seamless online ordering and payment processing.
 
 ![Phở Paradise](https://img.shields.io/badge/Status-Active-success)
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![Next.js](https://img.shields.io/badge/Next.js-15-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Latest-green)
+
+## 🌐 Live Demo
+
+**[View Live Application →](https://pho-ordering-app.vercel.app)**
+
+Test the app with Stripe test card: `4242 4242 4242 4242`
+- **Expiry**: Any future date (e.g., 12/25)
+- **CVC**: Any 3 digits (e.g., 123)
+
+---
 
 ## ✨ Features
 
@@ -45,7 +55,7 @@ A modern, full-stack food ordering application for authentic Vietnamese cuisine.
 ## 🚀 Tech Stack
 
 ### Frontend
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
@@ -63,7 +73,7 @@ A modern, full-stack food ordering application for authentic Vietnamese cuisine.
 - **Features**: Checkout sessions, webhook handling for order confirmation
 
 ### Development Tools
-- **Package Manager**: npm/yarn
+- **Package Manager**: npm
 - **Linting**: ESLint
 - **Type Checking**: TypeScript
 
@@ -79,7 +89,7 @@ A modern, full-stack food ordering application for authentic Vietnamese cuisine.
 1. **Clone the repository**
 ```bash
    git clone https://github.com/tuanwinnn/pho-ordering-app.git
-   cd pho-paradise
+   cd pho-ordering-app
 ```
 
 2. **Install dependencies**
@@ -106,28 +116,22 @@ A modern, full-stack food ordering application for authentic Vietnamese cuisine.
    NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-4. **Seed the database (optional)**
-```bash
-   npm run seed
-```
-
-5. **Run the development server**
+4. **Run the development server**
 ```bash
    npm run dev
 ```
 
-6. **Open your browser**
+5. **Open your browser**
    
    Navigate to [http://localhost:3000](http://localhost:3000)
 
-7. **Admin Dasboard**
-       
-    Navigate to [http://localhost:3000/admin](http://localhost:3000/admin)
-
+6. **Admin Dashboard**
+   
+   Navigate to [http://localhost:3000/admin](http://localhost:3000/admin)
 
 ## 🗂️ Project Structure
 ```
-pho-paradise/
+pho-ordering-app/
 ├── src/
 │   ├── app/
 │   │   ├── api/
@@ -137,9 +141,11 @@ pho-paradise/
 │   │   │   ├── auto-progress-orders/  # Auto-progression system
 │   │   │   ├── create-checkout-session/  # Stripe checkout
 │   │   │   └── webhook/           # Stripe webhook handler
+│   │   ├── admin/                 # Admin dashboard
 │   │   ├── orders/
 │   │   │   └── [id]/              # Order tracking page
 │   │   ├── profile/               # User profile page
+│   │   ├── success/               # Order success page
 │   │   └── page.tsx               # Homepage (main menu)
 │   ├── components/
 │   │   └── AuthModal.tsx          # Login/Register modal
@@ -152,7 +158,8 @@ pho-paradise/
 │       ├── MenuItem.ts            # Menu item schema
 │       └── Order.ts               # Order schema
 ├── public/
-│   └── images/                    # Menu item images
+│   ├── images/                    # Menu item images
+│   └── screenshots/               # App screenshots
 ├── .env.local                     # Environment variables
 ├── package.json
 ├── tsconfig.json
@@ -204,23 +211,7 @@ const AVAILABLE_ADDONS: AddOn[] = [
 
 ### For Developers
 
-#### Add New Menu Items
-
-Use the API or directly add to MongoDB:
-```javascript
-// POST /api/menu
-{
-  "name": "Phở Bò",
-  "description": "Traditional beef noodle soup",
-  "price": 12.99,
-  "category": "Phở",
-  "image": "/images/pho-bo.jpg",
-  "rating": 4.8,
-  "prepTime": "15-20 min"
-}
-```
-
-#### Set Up Stripe Webhooks
+#### Test Stripe Locally
 
 1. Install Stripe CLI: `brew install stripe/stripe-cli/stripe`
 2. Login: `stripe login`
@@ -240,27 +231,54 @@ Use the API or directly add to MongoDB:
 2. **Auto-Progress**:
    - Place an order
    - Wait 30 seconds (or configured interval)
-   - Refresh order page to see status change
+   - Order status will automatically update
 
 ### Test Stripe Payment
 
 Use Stripe test cards:
-- Success: `4242 4242 4242 4242`
-- Decline: `4000 0000 0000 0002`
-- Expiry: Any future date
-- CVC: Any 3 digits
-- ZIP: Any 5 digits
+- **Success**: `4242 4242 4242 4242`
+- **Decline**: `4000 0000 0000 0002`
+- **Expiry**: Any future date (e.g., 12/25)
+- **CVC**: Any 3 digits (e.g., 123)
+- **ZIP**: Any 5 digits (e.g., 12345)
 
 ## 🚀 Deployment
 
+### Deploy to Vercel
+
+1. **Push to GitHub**
+```bash
+   git push origin main
+```
+
+2. **Import to Vercel**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "Import Project"
+   - Select your repository
+   - Vercel auto-detects Next.js
+
+3. **Add Environment Variables**
+   - Add all variables from `.env.local`
+   - Update `NEXT_PUBLIC_APP_URL` to your Vercel URL
+
+4. **Set Up Production Webhooks**
+   - Go to [Stripe Dashboard](https://dashboard.stripe.com/test/webhooks)
+   - Click "Add endpoint"
+   - Enter: `https://your-app.vercel.app/api/webhook`
+   - Select event: `checkout.session.completed`
+   - Copy the webhook signing secret
+   - Update `STRIPE_WEBHOOK_SECRET` in Vercel
+   - Redeploy
+
 ### Environment Variables for Production
 
-Update these in your hosting platform:
+Required environment variables:
 - `MONGODB_URI` - Production MongoDB connection
 - `JWT_SECRET` - Strong random secret
-- `STRIPE_SECRET_KEY` - Live Stripe key
-- `STRIPE_WEBHOOK_SECRET` - Production webhook secret
-- `NEXT_PUBLIC_APP_URL` - Your production URL
+- `STRIPE_SECRET_KEY` - Stripe secret key (use test key for demo)
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook secret (from webhook setup)
+- `NEXT_PUBLIC_APP_URL` - Your production URL (e.g., https://your-app.vercel.app)
 
 ## 📝 API Documentation
 
@@ -273,7 +291,6 @@ Update these in your hosting platform:
 ### Menu
 
 - `GET /api/menu` - Get all menu items
-- `GET /api/menu/[id]` - Get single menu item
 - `POST /api/menu` - Create menu item (admin)
 - `PUT /api/menu/[id]` - Update menu item (admin)
 - `DELETE /api/menu/[id]` - Delete menu item (admin)
@@ -301,7 +318,7 @@ Contributions are welcome! Please follow these steps:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
 ## 🙏 Acknowledgments
 
@@ -310,7 +327,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Stripe for secure payment processing
 - MongoDB for reliable data storage
 - Lucide React for beautiful icons
-
 
 ## 🍜 About Phở Paradise
 
@@ -329,9 +345,11 @@ This is a demo food ordering application showcasing full-stack development skill
 
 ---
 
-**Made with ❤️ and 🍜 by [Tuan Nguyen]**
+**Made with ❤️ and 🍜 by Tuan Nguyen**
 
 *Bringing authentic Vietnamese flavors to your doorstep since 2015*
+
+---
 
 ## 📸 Screenshots
 
@@ -380,10 +398,10 @@ This is a demo food ordering application showcasing full-stack development skill
 ![Admin](./public/screenshots/admin-page.jpg)
 
 **Manage Orders**
-![Menu Management](./public/screenshots/admin-page2.jpg)
+![Orders](./public/screenshots/admin-page2.jpg)
 
 **Menu Management**
-![Orders](./public/screenshots/admin-page3.jpg)
+![Menu Management](./public/screenshots/admin-page3.jpg)
 
 **Add Menu Item**
-![Analytics](./public/screenshots/admin-page4.jpg)
+![Add Item](./public/screenshots/admin-page4.jpg)
