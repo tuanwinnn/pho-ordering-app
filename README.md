@@ -379,11 +379,11 @@ This is a demo food ordering application showcasing full-stack development skill
 **Admin Dashboard**
 ![Admin](./public/screenshots/admin-page.jpg)
 
-**Manage Menu Items**
+**Manage Orders**
 ![Menu Management](./public/screenshots/admin-page2.jpg)
 
-**Order Management**
+**Menu Management**
 ![Orders](./public/screenshots/admin-page3.jpg)
 
-**Analytics**
+**Add Menu Item**
 ![Analytics](./public/screenshots/admin-page4.jpg)
