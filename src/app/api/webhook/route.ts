@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import Stripe from 'stripe';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
+import { sendOrderConfirmation } from '@/lib/email'; 
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover',
@@ -23,7 +24,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verify webhook signature
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
@@ -35,25 +35,35 @@ export async function POST(req: Request) {
       );
     }
 
-    // Handle the checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      // Connect to database
       await connectDB();
 
-      // Get the order ID from metadata
       const orderId = session.metadata?.orderId;
 
       if (orderId) {
-        // Update existing order to confirmed
-        await Order.findByIdAndUpdate(orderId, {
-          status: 'pending',
-          paymentStatus: 'paid',
-          stripeSessionId: session.id,
-        });
+        const order = await Order.findByIdAndUpdate(
+          orderId,
+          {
+            status: 'pending',
+            paymentStatus: 'paid',
+            stripeSessionId: session.id,
+          },
+          { new: true }
+        ).populate('items');
 
         console.log(`✅ Order ${orderId} payment confirmed`);
+
+        // 📧 SEND ORDER CONFIRMATION EMAIL
+        if (session.customer_details?.email && order) {
+          await sendOrderConfirmation(
+            session.customer_details.email,
+            orderId,
+            order.total,
+            order.items
+          );
+        }
       } else {
         console.error('❌ No orderId in session metadata');
       }
