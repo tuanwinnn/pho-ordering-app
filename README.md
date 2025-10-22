@@ -341,7 +341,7 @@ This is a demo food ordering application showcasing full-stack development skill
 
 **Developer:** Tuan Nguyen
 - GitHub: [@tuanwinnn](https://github.com/tuanwinnn)
-- LinkedIn: [Tuan Nguyen](https://www.linkedin.com/in/tuan-nguyen-237656326/)
+- LinkedIn: [Tuan Nguyen](https://www.linkedin.com/in/tuan-nguyen-win/)
 
 ---
 
