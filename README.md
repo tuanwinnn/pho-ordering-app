@@ -11,7 +11,7 @@ A modern, full-stack food ordering application for authentic Vietnamese cuisine.
 
 **[View Live Application →](https://pho-ordering-app.vercel.app)**
 
-Test the app with Stripe test card: `4242 4242 4242 4242`
+Test the app with Stripe test card: `4242 4242 4242 4242` (Must use this exact test card)
 - **Expiry**: Any future date (e.g., 12/25)
 - **CVC**: Any 3 digits (e.g., 123)
 
@@ -19,7 +19,7 @@ Test the app with Stripe test card: `4242 4242 4242 4242`
 
 ## Features
 
-### 🛒 Customer Features
+### Customer Features
 - **Browse Menu**: View authentic Vietnamese dishes with images, descriptions, ratings, and prep times
 - **Category Filtering**: Filter by dish categories (Phở, Bánh Mì, Appetizers, etc.) or view all items organized by sections
 - **Favorites**: Mark your favorite dishes for quick access
@@ -346,8 +346,6 @@ This is a demo food ordering application showcasing full-stack development skill
 ---
 
 **Made with ❤️ and 🍜 by Tuan Nguyen**
-
-*Bringing authentic Vietnamese flavors to your doorstep since 2015*
 
 ---
 
