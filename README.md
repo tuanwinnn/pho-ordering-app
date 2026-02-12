@@ -1,4 +1,4 @@
-# 🍜 Phở Paradise - Vietnamese Food Ordering App
+# Phở Paradise - Vietnamese Food Ordering App
 
 A modern, full-stack food ordering application for authentic Vietnamese cuisine. Built with Next.js, TypeScript, MongoDB, and Stripe for seamless online ordering and payment processing.
 
@@ -7,7 +7,7 @@ A modern, full-stack food ordering application for authentic Vietnamese cuisine.
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Latest-green)
 
-## 🌐 Live Demo
+## Live Demo
 
 **[View Live Application →](https://pho-ordering-app.vercel.app)**
 
@@ -17,7 +17,7 @@ Test the app with Stripe test card: `4242 4242 4242 4242`
 
 ---
 
-## ✨ Features
+## Features
 
 ### 🛒 Customer Features
 - **Browse Menu**: View authentic Vietnamese dishes with images, descriptions, ratings, and prep times
@@ -36,7 +36,7 @@ Test the app with Stripe test card: `4242 4242 4242 4242`
 - **Order Tracking**: Real-time order status updates with visual progress tracker
 - **User Authentication**: Register and login to save order history
 
-### 🔄 Automated Order Management
+### Automated Order Management
 - **Auto-Progress System**: Orders automatically progress through statuses:
   - Pending → Preparing (configurable delay)
   - Preparing → Ready (configurable delay)
@@ -44,7 +44,7 @@ Test the app with Stripe test card: `4242 4242 4242 4242`
 - **Real-Time Updates**: Order tracking page auto-refreshes every 10 seconds
 - **Background Processing**: Auto-progress runs every 30 seconds on both homepage and order tracking pages
 
-### 🎨 UI/UX Features
+### UI/UX Features
 - **Dark Theme**: Modern, sleek dark interface with amber accents
 - **Responsive Design**: Fully responsive for mobile, tablet, and desktop
 - **Smooth Animations**: Fade-in, slide, and scale animations throughout
@@ -52,7 +52,7 @@ Test the app with Stripe test card: `4242 4242 4242 4242`
 - **Mobile Cart**: Floating cart button on mobile devices
 - **Loading States**: Elegant loading indicators for all async operations
 
-## 🚀 Tech Stack
+## Tech Stack
 
 ### Frontend
 - **Framework**: Next.js 15 (App Router)
@@ -77,7 +77,7 @@ Test the app with Stripe test card: `4242 4242 4242 4242`
 - **Linting**: ESLint
 - **Type Checking**: TypeScript
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 - Node.js 18+ installed
@@ -129,7 +129,7 @@ Test the app with Stripe test card: `4242 4242 4242 4242`
    
    Navigate to [http://localhost:3000/admin](http://localhost:3000/admin)
 
-## 🗂️ Project Structure
+## Project Structure
 ```
 pho-ordering-app/
 ├── src/
@@ -166,7 +166,7 @@ pho-ordering-app/
 └── tailwind.config.ts
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Auto-Progress Timing
 
@@ -198,7 +198,7 @@ const AVAILABLE_ADDONS: AddOn[] = [
 ];
 ```
 
-## 🎯 Usage
+## Usage
 
 ### For Customers
 
@@ -218,7 +218,7 @@ const AVAILABLE_ADDONS: AddOn[] = [
 3. Forward webhooks: `stripe listen --forward-to localhost:3000/api/webhook`
 4. Copy the webhook signing secret to `.env.local`
 
-## 🧪 Testing
+## Testing
 
 ### Manual Testing
 
@@ -242,7 +242,7 @@ Use Stripe test cards:
 - **CVC**: Any 3 digits (e.g., 123)
 - **ZIP**: Any 5 digits (e.g., 12345)
 
-## 🚀 Deployment
+## Deployment
 
 ### Deploy to Vercel
 
@@ -280,7 +280,7 @@ Required environment variables:
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook secret (from webhook setup)
 - `NEXT_PUBLIC_APP_URL` - Your production URL (e.g., https://your-app.vercel.app)
 
-## 📝 API Documentation
+## API Documentation
 
 ### Authentication
 
@@ -306,7 +306,7 @@ Required environment variables:
 
 - `POST /api/webhook` - Stripe webhook handler
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -316,11 +316,11 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Vietnamese cuisine inspiration
 - Next.js team for the amazing framework
@@ -328,7 +328,7 @@ This project is licensed under the MIT License.
 - MongoDB for reliable data storage
 - Lucide React for beautiful icons
 
-## 🍜 About Phở Paradise
+## About Phở Paradise
 
 This is a demo food ordering application showcasing full-stack development skills.
 
@@ -337,7 +337,7 @@ This is a demo food ordering application showcasing full-stack development skill
 - Phone: (510) 555-PHỞ (7467)
 - Location: San Jose, CA
 
-## 📧 Contact
+## Contact
 
 **Developer:** Tuan Nguyen
 - GitHub: [@tuanwinnn](https://github.com/tuanwinnn)
@@ -351,9 +351,9 @@ This is a demo food ordering application showcasing full-stack development skill
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
-### 🏠 Main Application
+### Main Application
 
 **Homepage - Browse Menu**
 ![Homepage](./public/screenshots/main-page-ss1.jpg)
@@ -366,7 +366,7 @@ This is a demo food ordering application showcasing full-stack development skill
 
 ---
 
-### 🛒 Ordering Process
+### Ordering Process
 
 **Customize Your Order**
 ![Add-ons](./public/screenshots/add-ons.jpg)
@@ -379,7 +379,7 @@ This is a demo food ordering application showcasing full-stack development skill
 
 ---
 
-### 📦 Order Tracking
+### Order Tracking
 
 **Order Confirmed**
 ![Confirmed](./public/screenshots/order-confirmed.jpg)
@@ -392,7 +392,7 @@ This is a demo food ordering application showcasing full-stack development skill
 
 ---
 
-### 👨‍💼 Admin Features
+### Admin Features
 
 **Admin Dashboard**
 ![Admin](./public/screenshots/admin-page.jpg)
