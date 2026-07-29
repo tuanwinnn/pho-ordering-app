@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Package, Clock, CheckCircle, Truck, ChefHat, ArrowLeft, RefreshCw, Flame, MapPin, Phone, Mail } from 'lucide-react';
+import { getPusherClient } from '@/lib/pusherClient';
 
 interface OrderItem {
   name: string;
@@ -63,34 +64,41 @@ const fetchOrder = useCallback(async (showRefreshIndicator = false) => {
 }, [orderId]);
 
 useEffect(() => {
-  if (orderId) {
-    fetchOrder();
-    
-    // Auto-refresh the order display every 10 seconds
-    const refreshInterval = setInterval(() => {
+  if (!orderId) return;
+
+  fetchOrder();
+
+  const pusherClient = getPusherClient();
+  let channel: ReturnType<NonNullable<typeof pusherClient>['subscribe']> | undefined;
+  let fallbackPollInterval: ReturnType<typeof setInterval> | undefined;
+
+  if (pusherClient) {
+    channel = pusherClient.subscribe(`order-${orderId}`);
+    channel.bind('status-updated', (data: { status: Order['status']; updatedAt: string }) => {
+      setOrder(prev => (prev ? { ...prev, status: data.status, updatedAt: data.updatedAt } : prev));
+    });
+  } else {
+    // Real-time isn't configured (no Pusher env vars) - fall back to polling
+    console.warn('Pusher not configured, falling back to polling every 10 seconds');
+    fallbackPollInterval = setInterval(() => {
       fetchOrder();
     }, 10000);
-
-    // Call auto-progress API every 30 seconds to update order status in background
-    const autoProgressInterval = setInterval(() => {
-      console.log('🔄 Calling auto-progress from order page...');
-      fetch('/api/auto-progress-orders')
-        .then(res => res.json())
-        .then(data => {
-          if (data.updatedCount > 0) {
-            console.log(`✅ Auto-progressed ${data.updatedCount} order(s)`);
-            // Immediately fetch updated order to show new status
-            fetchOrder();
-          }
-        })
-        .catch(err => console.error('❌ Auto-progress error:', err));
-    }, 30000);
-
-    return () => {
-      clearInterval(refreshInterval);
-      clearInterval(autoProgressInterval);
-    };
   }
+
+  // Call auto-progress API every 30 seconds to advance the demo kitchen simulation.
+  // The resulting status change is pushed to this page via Pusher (or picked up by the fallback poll above).
+  const autoProgressInterval = setInterval(() => {
+    fetch('/api/auto-progress-orders').catch(err => console.error('❌ Auto-progress error:', err));
+  }, 30000);
+
+  return () => {
+    if (channel) {
+      channel.unbind_all();
+      pusherClient?.unsubscribe(`order-${orderId}`);
+    }
+    if (fallbackPollInterval) clearInterval(fallbackPollInterval);
+    clearInterval(autoProgressInterval);
+  };
 }, [orderId, fetchOrder]);
 
   const getStatusIndex = (status: Order['status']) => {

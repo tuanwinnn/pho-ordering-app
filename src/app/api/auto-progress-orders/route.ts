@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
+import { publishOrderStatus } from '@/lib/pusher';
 
 const STATUS_PROGRESSION = {
   'pending': { next: 'preparing', delayMinutes: 0.1 },
@@ -37,7 +38,8 @@ export async function GET() {
         order.status = progression.next;
         order.updatedAt = now;
         await order.save();
-        
+        await publishOrderStatus(order._id.toString(), order.status, order.updatedAt);
+
         updatedCount++;
         
         // TODO: Send email notification here

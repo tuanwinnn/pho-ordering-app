@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
+import { publishOrderStatus } from '@/lib/pusher';
 
 // GET single order by ID
 export async function GET(
@@ -41,11 +42,15 @@ export async function PUT(
     const body = await request.json();
    
     const order = await Order.findByIdAndUpdate(id, body, { new: true });
-   
+
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
-   
+
+    if (body.status) {
+      await publishOrderStatus(order._id.toString(), order.status, order.updatedAt);
+    }
+
     return NextResponse.json(order);
   } catch (error) {
     console.error('Error updating order:', error);
