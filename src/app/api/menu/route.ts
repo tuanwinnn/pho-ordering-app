@@ -5,16 +5,16 @@ import { redis, invalidateMenuCache, MENU_CACHE_KEY, MENU_CACHE_TTL_SECONDS } fr
 
 // GET all menu items
 export async function GET() {
-  if (redis) {
-    try {
-      const cached = await redis.get(MENU_CACHE_KEY);
-      if (cached) {
-        return NextResponse.json(cached);
-      }
-    } catch (error) {
-      console.error('Redis read error, falling back to DB:', error);
-    }
-  }
+  // if (redis) {
+  //   try {
+  //     const cached = await redis.get(MENU_CACHE_KEY);
+  //     if (cached) {
+  //       return NextResponse.json(cached);
+  //     }
+  //   } catch (error) {
+  //     console.error('Redis read error, falling back to DB:', error);
+  //   }
+  // }
 
   try {
     await connectDB();
