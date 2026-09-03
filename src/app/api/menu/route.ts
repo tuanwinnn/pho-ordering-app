@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import MenuItem from '@/models/MenuItem';
 import { redis, invalidateMenuCache, MENU_CACHE_KEY, MENU_CACHE_TTL_SECONDS } from '@/lib/redis';
+import { requireAdmin } from '@/lib/auth';
 
 // GET all menu items
 export async function GET() {
@@ -33,8 +34,12 @@ export async function GET() {
   }
 }
 
-// POST create new menu item
+// POST create new menu item (admin)
 export async function POST(request: Request) {
+  if (!requireAdmin(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
   try {
     await connectDB();
     const body = await request.json();

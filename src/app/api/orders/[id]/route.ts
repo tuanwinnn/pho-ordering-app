@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
 import { publishOrderStatus } from '@/lib/pusher';
+import { requireAdmin } from '@/lib/auth';
 
 // GET single order by ID
 export async function GET(
@@ -31,11 +32,15 @@ export async function GET(
   }
 }
 
-// UPDATE order (your existing code)
+// UPDATE order (admin)
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
   try {
     await connectDB();
     const { id } = await params;

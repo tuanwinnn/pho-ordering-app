@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Package, Clock, CheckCircle, Truck, Edit, Trash2, Plus, RefreshCw, TrendingUp, DollarSign, ShoppingBag, Search, Sparkles, ChefHat, X } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface Order {
   _id: string;
@@ -52,12 +53,11 @@ interface NewMenuItem {
 }
 
 export default function AdminDashboard() {
-  // 🔒 PASSWORD PROTECTION
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  
-  const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123';
+  const { user, token, isLoading: authLoading, login, logout } = useAuth();
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginSubmitting, setLoginSubmitting] = useState(false);
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -79,9 +79,11 @@ export default function AdminDashboard() {
   const [addLoading, setAddLoading] = useState(false);
 
   useEffect(() => {
-    fetchOrders();
-    fetchMenuItems();
-  }, []);
+    if (user?.role === 'admin') {
+      fetchOrders();
+      fetchMenuItems();
+    }
+  }, [user]);
 
   const fetchOrders = async () => {
     try {
@@ -109,7 +111,10 @@ export default function AdminDashboard() {
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ status: newStatus }),
       });
       
@@ -127,6 +132,9 @@ export default function AdminDashboard() {
     try {
       const response = await fetch(`/api/menu/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
       
       if (response.ok) {
@@ -158,7 +166,10 @@ export default function AdminDashboard() {
 
       const response = await fetch('/api/menu', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify(itemData),
       });
       
@@ -245,8 +256,16 @@ export default function AdminDashboard() {
     return acc;
   }, {} as Record<string, MenuItem[]>);
 
-  // 🔒 PASSWORD CHECK - Show login if not authenticated
-  if (!isAuthenticated) {
+  // 🔒 AUTH CHECK - show login if not signed in, or an access-denied screen if signed in as a non-admin
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black flex items-center justify-center">
+        <RefreshCw className="w-12 h-12 text-amber-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || user.role !== 'admin') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black flex items-center justify-center p-4">
         <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 max-w-md w-full animate-scale-in shadow-2xl">
@@ -259,50 +278,71 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent mb-2">
               Admin Access Required
             </h1>
-            <p className="text-zinc-500 text-sm">Enter password to access the admin dashboard</p>
+            <p className="text-zinc-500 text-sm">
+              {user ? "This account doesn't have admin access." : 'Sign in with an admin account to access the dashboard'}
+            </p>
           </div>
 
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            if (password === ADMIN_PASSWORD) {
-              setIsAuthenticated(true);
-              setPasswordError('');
-            } else {
-              setPasswordError('Invalid password. Please try again.');
-              setPassword('');
-            }
-          }}>
-            <input
-              type="password"
-              placeholder="Admin password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setPasswordError('');
-              }}
-              className="w-full px-4 py-3 bg-black/50 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 text-zinc-200 placeholder-zinc-600 mb-4 transition-all"
-              autoFocus
-            />
-            
-            {passwordError && (
-              <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl mb-4 text-sm animate-shake">
-                🔒 {passwordError}
-              </div>
-            )}
-
+          {user ? (
             <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-black py-3 rounded-xl hover:from-amber-400 hover:to-amber-500 transition-all duration-300 hover:scale-105 font-semibold shadow-lg shadow-amber-500/20"
+              onClick={logout}
+              className="w-full bg-zinc-800 text-zinc-300 py-3 rounded-xl hover:bg-zinc-700 transition font-medium"
             >
-              Access Admin Panel
+              Sign out
             </button>
-          </form>
+          ) : (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoginError('');
+              setLoginSubmitting(true);
+              try {
+                await login(loginEmail, loginPassword);
+              } catch (err) {
+                setLoginError(err instanceof Error ? err.message : 'Login failed');
+                setLoginPassword('');
+              } finally {
+                setLoginSubmitting(false);
+              }
+            }}>
+              <input
+                type="email"
+                placeholder="Email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-black/50 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 text-zinc-200 placeholder-zinc-600 mb-3 transition-all"
+                autoFocus
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-black/50 border border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 text-zinc-200 placeholder-zinc-600 mb-4 transition-all"
+              />
+
+              {loginError && (
+                <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl mb-4 text-sm animate-shake">
+                  🔒 {loginError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loginSubmitting}
+                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-black py-3 rounded-xl hover:from-amber-400 hover:to-amber-500 transition-all duration-300 hover:scale-105 font-semibold shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {loginSubmitting ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+          )}
 
           <div className="mt-6 flex items-center justify-center gap-2 text-xs text-zinc-600">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
-            <span>This area is protected and requires authentication</span>
+            <span>This area is protected and requires an admin account</span>
           </div>
         </div>
 

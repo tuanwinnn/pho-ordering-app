@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import MenuItem from '@/models/MenuItem';
 import { invalidateMenuCache } from '@/lib/redis';
+import { requireAdmin } from '@/lib/auth';
 
 // GET single menu item by ID
 export async function GET(
@@ -30,6 +31,10 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
   try {
     await connectDB();
     const { id } = await params;
@@ -54,6 +59,10 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!requireAdmin(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
   try {
     await connectDB();
     const { id } = await params;

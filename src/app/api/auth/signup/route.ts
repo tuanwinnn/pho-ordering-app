@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     });
 
     // Generate token
-    const token = generateToken(user._id.toString());
+    const token = generateToken(user._id.toString(), user.role);
 
     return NextResponse.json({
       message: 'User created successfully',
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       }
     }, { status: 201 });
   } catch (error) {
