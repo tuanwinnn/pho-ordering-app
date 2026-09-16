@@ -6,11 +6,17 @@ import { requireAdmin } from '@/lib/auth';
 
 // GET all menu items
 export async function GET() {
+  const start = Date.now();
+
   if (redis) {
     try {
       const cached = await redis.get(MENU_CACHE_KEY);
       if (cached) {
-        return NextResponse.json(cached);
+        const durationMs = Date.now() - start;
+        console.log(JSON.stringify({ event: 'menu_read', cache: 'hit', durationMs }));
+        return NextResponse.json(cached, {
+          headers: { 'X-Cache': 'HIT', 'X-Response-Time': `${durationMs}ms` },
+        });
       }
     } catch (error) {
       console.error('Redis read error, falling back to DB:', error);
@@ -20,6 +26,8 @@ export async function GET() {
   try {
     await connectDB();
     const menuItems = await MenuItem.find({});
+    const durationMs = Date.now() - start;
+    console.log(JSON.stringify({ event: 'menu_read', cache: 'miss', durationMs }));
 
     if (redis) {
       redis.set(MENU_CACHE_KEY, menuItems, { ex: MENU_CACHE_TTL_SECONDS }).catch((error) =>
@@ -27,7 +35,9 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(menuItems);
+    return NextResponse.json(menuItems, {
+      headers: { 'X-Cache': 'MISS', 'X-Response-Time': `${durationMs}ms` },
+    });
   } catch (error) {
     console.error('Error fetching menu items:', error);
     return NextResponse.json({ error: 'Failed to fetch menu items' }, { status: 500 });
